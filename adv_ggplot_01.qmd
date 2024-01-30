@@ -45,16 +45,68 @@ You will need to use reference pages and documentation to discover necessary too
 # Setup
 
 ```{r}
-# Code for loading packages and reading in data
+library(tidyverse)
+library(lubridate)
+library(data.table)
+library(ggpubr)
+weather <- read_csv("https://lmyint.github.io/212_spring_2024/data/sfo_weather.csv")
 ```
 
 
 
 # Visualization
+```{r}
+records <- weather %>% 
+  filter(Record == TRUE)
+
+month_starts <- weather %>% 
+  filter(Day == 1, Month != 1)
+
+first_days <- month_starts %>% pull(dateInYear)
+
+tempPlot <- ggplot(weather) +
+  geom_linerange(aes(x = dateInYear, ymin = RecordLow, ymax = RecordHigh), color = "#ECEBE3", linewidth = 1) + 
+  theme_classic() +
+  geom_linerange(aes(x = dateInYear, ymin = NormalLow, ymax = NormalHigh), color = "#c8b8ba", linewidth = 1) + 
+  theme_classic() +
+  geom_linerange(aes(x = dateInYear, ymin = Low, ymax = High), color = "#A90248", linewidth = 1) + 
+  theme_classic() +
+  geom_vline(data = month_starts, mapping = aes(xintercept = dateInYear), lty = "dashed", color = "grey") +
+  geom_point(data = records, shape = 25, fill = "black", mapping = aes(dateInYear, High)) +
+  geom_text(data = records, mapping = aes(dateInYear, High, label = paste("Record High:" , High), hjust = .5, vjust = -4), size = 1.5) + 
+  labs(title = "Temperature") +
+  theme(axis.title.x = element_blank(),
+        #axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_y_continuous(breaks = seq(0, 120, 40), limits = c(0, 120)) +
+  scale_x_continuous(breaks = seq(15.5, 350, 30.4), labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"))
+```
 
 ```{r}
-# Code for recreating the visualization
-# Use as many code chunks as you need to organize your work well
+recordsp <- weather %>% 
+  filter(RecordP == TRUE)
+
+monthlyPrec <- weather %>%
+  group_by(Month) %>% 
+  mutate(monthTotal = sum(Precip)) %>% 
+  filter(day(ymd(date)) == 1)
+
+precipPlot <- ggplot(weather) +
+  geom_vline(data = month_starts, mapping = aes(xintercept = dateInYear), lty = "solid", color = "grey") +
+  geom_path(aes(x = dateInYear, y = CulmPrec, group = Month), color = "#32a3d8", linewidth = 1) +
+  geom_ribbon(aes(x = dateInYear, ymin = 0, ymax = CulmPrec), fill = "#ebeae2") +
+  geom_point(data = recordsp, shape = 25, fill = "black", mapping = aes(dateInYear, CulmPrec, label = CulmPrec)) +
+  geom_text(data = monthlyPrec, mapping = aes(dateInYear, monthTotal, label = monthTotal, hjust = -0.5, vjust = 0)) +
+  labs(title = "Precipitation") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_blank())
+```
+```{r}
+ggarrange(tempPlot, precipPlot, ncol =  1, nrow = 2, heights = c(2, 1), labels = "SFO weather in 2011", hjust = c(-1.5, 0, 0))
 ```
 
 
